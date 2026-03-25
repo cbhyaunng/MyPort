@@ -1,0 +1,48 @@
+name: MyPort
+options:
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_LANGUAGE: ko
+    TARGETED_DEVICE_FAMILY: 1
+    SUPPORTS_MACCATALYST: NO
+targets:
+  MyPortApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: MyPortApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.changminbyun.MyPort
+        PRODUCT_NAME: MyPort
+        PRODUCT_MODULE_NAME: MyPortApp
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: MyPort
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    scheme:
+      testTargets:
+        - MyPortAppTests
+  MyPortAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: MyPortAppTests
+    dependencies:
+      - target: MyPortApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.changminbyun.MyPortTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/MyPort.app/MyPort"

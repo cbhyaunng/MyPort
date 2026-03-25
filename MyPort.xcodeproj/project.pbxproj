@@ -1,0 +1,710 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0F0FEF90DA9A3C341393EFD6 /* AnalysisRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBEEA63D163C218677DC755 /* AnalysisRepository.swift */; };
+		16489BA2D33967F3E31F0401 /* MockAnalysisRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77EE937C2E5CF471E4D21D81 /* MockAnalysisRepository.swift */; };
+		17A4451086A2E597CB99E339 /* PortfolioStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD42F7299BAD09362854382 /* PortfolioStore.swift */; };
+		1AE60315911B82C58946ACF3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F818077A67AEE0701C86EBE /* Assets.xcassets */; };
+		1F21BAE9F5961A38F22117D6 /* PortfolioAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F3F0894287C91D53A7E664F /* PortfolioAnalytics.swift */; };
+		1F5399AC1EED3210FA771FB1 /* MockServerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C11C3EC5E475F5121A74F9B /* MockServerState.swift */; };
+		2BAC712B058A80563B9B4ADE /* ExchangeRateRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D635F448516B3333CFCED56 /* ExchangeRateRecord.swift */; };
+		34B867A648DCF401783A88BE /* KeychainValueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26E9194F872E031023B574C /* KeychainValueStore.swift */; };
+		39D73A9522E82D8E283BCC6F /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDDACA8D3D841D82E127B08 /* RootTabView.swift */; };
+		450884AF1B1CF6A830B966D2 /* PortfolioAllocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907A3E64F563D381A0CC43E9 /* PortfolioAllocationService.swift */; };
+		4A5EAAE1AEB06624E73B2AC4 /* AllocationChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5ADFE8E6872505FB5C7C32D /* AllocationChartView.swift */; };
+		4B53E25A86D838C43EC0B2C2 /* AssetClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276C4FDA0A9526A3813E6B4E /* AssetClass.swift */; };
+		4F90AF010365C6760F080C8C /* SnapshotEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A44D8177A63A3469F948E676 /* SnapshotEditorView.swift */; };
+		5562908989AD4986BAF55673 /* ServerConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B10B8595CF181DF93C6AC /* ServerConfigurationStore.swift */; };
+		55F3BE8EA637D620CCFD9714 /* MockPortfolioRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E71D792F49DFBCD9571435 /* MockPortfolioRepository.swift */; };
+		6A835E186E54CF63C898BBDE /* PortfolioRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAD6301D4A09FBB548D7412 /* PortfolioRepository.swift */; };
+		6AD6E86A5CB0C883C209AB6A /* MyPortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49368BF7464705DF3ED74B1 /* MyPortApp.swift */; };
+		6D86F637682ECFF98690D848 /* PortfolioAnalyticsServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12DCCE1AF932A414665267 /* PortfolioAnalyticsServicesTests.swift */; };
+		70BF31ED01DD4A66F50CDB94 /* PortfolioSummaryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52466E558C16AD4EFBF156AB /* PortfolioSummaryServiceTests.swift */; };
+		7F2FA3984E150FD8293F239A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3237E3A82A577216A776BCFE /* Preview Assets.xcassets */; };
+		80445A3D73482B8DFDCAEE7B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F343AC46910A32BAE129D49A /* SettingsView.swift */; };
+		953955B456BAF2F98535ABCB /* PortfolioTimelineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C7ECCADF3B0A8FA2F7C6D2 /* PortfolioTimelineService.swift */; };
+		9974821AA8FAF77A1FB47A94 /* SnapshotComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA3340B690932520AAD4C18 /* SnapshotComparisonView.swift */; };
+		9B42A3E1BEF2B663D50F57CD /* ScreenshotUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA16F486309403A06BCE5F3A /* ScreenshotUpload.swift */; };
+		9C5DFC272A2C9A49FD7F28E4 /* AppFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A74B5F2A0415144B91CA67FB /* AppFormatters.swift */; };
+		A2B5D9BB93CBC0254726CC5C /* PortfolioSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F948268BEE105C47B1AF277C /* PortfolioSnapshot.swift */; };
+		A5E1F1C0A779DF596DC6BA01 /* SnapshotDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB4E11D6E43E68A5BCCDFB7D /* SnapshotDetailView.swift */; };
+		A769B29E1D1D7576AC779082 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1291C2D400D23A695867A81A /* DashboardView.swift */; };
+		AB3C6F8C9C326B34E816758D /* RemoteAnalysisRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11451E03BAE4E7F64CED2D0 /* RemoteAnalysisRepository.swift */; };
+		B2326BDB08B213A03AF53035 /* HoldingRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EC8C027C7C24822CF06C5A /* HoldingRowView.swift */; };
+		B7AAC07A4C07B8AB31B23D11 /* RepositoryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 691970E8E2A6F7DEE990C997 /* RepositoryFactory.swift */; };
+		CBBA4EF7D3B251E3B6F7E84B /* ImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB6DE553934C52651948A78 /* ImportView.swift */; };
+		CE0B366DBD534AB821E96856 /* AnalysisJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D8DA1B29E46047EB67280D /* AnalysisJob.swift */; };
+		D0BF7D056E0DB007DBD84754 /* AssetPosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 209402662BE0C67D5A3285DC /* AssetPosition.swift */; };
+		EA9D16B2E1A1A7E72AAC4CA5 /* PortfolioSummaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D9C2FD81CE3693F9CC70D7 /* PortfolioSummaryService.swift */; };
+		F5EA2F581314E7628235B783 /* UploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19531C0E5CDE42BBED892224 /* UploadSession.swift */; };
+		FCBCC503FEBA1675E80DF321 /* SnapshotListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7073AAE62B30128DC733FF /* SnapshotListView.swift */; };
+		FF4B0907DFC69BF9179FF53A /* RemotePortfolioRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BAA6CFF780069CD719EF8E9 /* RemotePortfolioRepository.swift */; };
+		FF8C2F529A7ECBEB46C620A3 /* AnalysisStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127CC4232B27FD502CCA0D1C /* AnalysisStore.swift */; };
+		FFED4F3884F4719CA0AAD44B /* PortfolioComparisonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEEDE9E31E90C270FF7757D /* PortfolioComparisonService.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B4B61D483A754977E2FDFFEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C061F152988B36D11B0B1A20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B4F8E2C069D142B23F4C8179;
+			remoteInfo = MyPortApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		00D8DA1B29E46047EB67280D /* AnalysisJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisJob.swift; sourceTree = "<group>"; };
+		0C11C3EC5E475F5121A74F9B /* MockServerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockServerState.swift; sourceTree = "<group>"; };
+		0DB6DE553934C52651948A78 /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
+		127CC4232B27FD502CCA0D1C /* AnalysisStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisStore.swift; sourceTree = "<group>"; };
+		1291C2D400D23A695867A81A /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		131D490035F9B4A641DFD3ED /* MyPortAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MyPortAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		156B10B8595CF181DF93C6AC /* ServerConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfigurationStore.swift; sourceTree = "<group>"; };
+		19531C0E5CDE42BBED892224 /* UploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadSession.swift; sourceTree = "<group>"; };
+		209402662BE0C67D5A3285DC /* AssetPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetPosition.swift; sourceTree = "<group>"; };
+		276C4FDA0A9526A3813E6B4E /* AssetClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetClass.swift; sourceTree = "<group>"; };
+		2BAA6CFF780069CD719EF8E9 /* RemotePortfolioRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePortfolioRepository.swift; sourceTree = "<group>"; };
+		2F3F0894287C91D53A7E664F /* PortfolioAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioAnalytics.swift; sourceTree = "<group>"; };
+		31E71D792F49DFBCD9571435 /* MockPortfolioRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPortfolioRepository.swift; sourceTree = "<group>"; };
+		3237E3A82A577216A776BCFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		3FAD6301D4A09FBB548D7412 /* PortfolioRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioRepository.swift; sourceTree = "<group>"; };
+		52466E558C16AD4EFBF156AB /* PortfolioSummaryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioSummaryServiceTests.swift; sourceTree = "<group>"; };
+		5D635F448516B3333CFCED56 /* ExchangeRateRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExchangeRateRecord.swift; sourceTree = "<group>"; };
+		5FBEEA63D163C218677DC755 /* AnalysisRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisRepository.swift; sourceTree = "<group>"; };
+		691970E8E2A6F7DEE990C997 /* RepositoryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryFactory.swift; sourceTree = "<group>"; };
+		6F818077A67AEE0701C86EBE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		77EE937C2E5CF471E4D21D81 /* MockAnalysisRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAnalysisRepository.swift; sourceTree = "<group>"; };
+		7BA3340B690932520AAD4C18 /* SnapshotComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotComparisonView.swift; sourceTree = "<group>"; };
+		82EC8C027C7C24822CF06C5A /* HoldingRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldingRowView.swift; sourceTree = "<group>"; };
+		907A3E64F563D381A0CC43E9 /* PortfolioAllocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioAllocationService.swift; sourceTree = "<group>"; };
+		9EEEDE9E31E90C270FF7757D /* PortfolioComparisonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioComparisonService.swift; sourceTree = "<group>"; };
+		A44D8177A63A3469F948E676 /* SnapshotEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotEditorView.swift; sourceTree = "<group>"; };
+		A74B5F2A0415144B91CA67FB /* AppFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFormatters.swift; sourceTree = "<group>"; };
+		AB12DCCE1AF932A414665267 /* PortfolioAnalyticsServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioAnalyticsServicesTests.swift; sourceTree = "<group>"; };
+		ADD42F7299BAD09362854382 /* PortfolioStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioStore.swift; sourceTree = "<group>"; };
+		AE7073AAE62B30128DC733FF /* SnapshotListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotListView.swift; sourceTree = "<group>"; };
+		B8C7ECCADF3B0A8FA2F7C6D2 /* PortfolioTimelineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTimelineService.swift; sourceTree = "<group>"; };
+		C11451E03BAE4E7F64CED2D0 /* RemoteAnalysisRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAnalysisRepository.swift; sourceTree = "<group>"; };
+		C49368BF7464705DF3ED74B1 /* MyPortApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPortApp.swift; sourceTree = "<group>"; };
+		C5ADFE8E6872505FB5C7C32D /* AllocationChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationChartView.swift; sourceTree = "<group>"; };
+		E4D9C2FD81CE3693F9CC70D7 /* PortfolioSummaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioSummaryService.swift; sourceTree = "<group>"; };
+		EB4E11D6E43E68A5BCCDFB7D /* SnapshotDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotDetailView.swift; sourceTree = "<group>"; };
+		ECDDACA8D3D841D82E127B08 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		F26E9194F872E031023B574C /* KeychainValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainValueStore.swift; sourceTree = "<group>"; };
+		F343AC46910A32BAE129D49A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F948268BEE105C47B1AF277C /* PortfolioSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioSnapshot.swift; sourceTree = "<group>"; };
+		FA16F486309403A06BCE5F3A /* ScreenshotUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotUpload.swift; sourceTree = "<group>"; };
+		FA882D6A10EF4136E8B32B95 /* MyPortApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MyPortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		11B4C4BB1CBFDFAB84430C15 /* Import */ = {
+			isa = PBXGroup;
+			children = (
+				0DB6DE553934C52651948A78 /* ImportView.swift */,
+			);
+			path = Import;
+			sourceTree = "<group>";
+		};
+		18EC9274EA11F93143A3040B /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F343AC46910A32BAE129D49A /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		1DD8DBB9934E2F256F07128A /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A8565B1052507010DCE0BD3E /* Models */,
+				E8C55FD1341F992510D1CFB6 /* Networking */,
+				B51C6D375C8B7664F5812BC0 /* Repositories */,
+				2BF3562E6E56A1C2DF06D9E5 /* Security */,
+				2E81D95EB5D70B6DECB2968D /* Services */,
+				D61D3365FE96AF6AAEF774F1 /* Stores */,
+				9FB03DF8D6B0966B9037863C /* Utilities */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		21D454B6E6D49C88BE698E57 /* Snapshots */ = {
+			isa = PBXGroup;
+			children = (
+				82EC8C027C7C24822CF06C5A /* HoldingRowView.swift */,
+				7BA3340B690932520AAD4C18 /* SnapshotComparisonView.swift */,
+				EB4E11D6E43E68A5BCCDFB7D /* SnapshotDetailView.swift */,
+				A44D8177A63A3469F948E676 /* SnapshotEditorView.swift */,
+				AE7073AAE62B30128DC733FF /* SnapshotListView.swift */,
+			);
+			path = Snapshots;
+			sourceTree = "<group>";
+		};
+		2BF3562E6E56A1C2DF06D9E5 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				F26E9194F872E031023B574C /* KeychainValueStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		2E81D95EB5D70B6DECB2968D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				907A3E64F563D381A0CC43E9 /* PortfolioAllocationService.swift */,
+				9EEEDE9E31E90C270FF7757D /* PortfolioComparisonService.swift */,
+				E4D9C2FD81CE3693F9CC70D7 /* PortfolioSummaryService.swift */,
+				B8C7ECCADF3B0A8FA2F7C6D2 /* PortfolioTimelineService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		49E84E4649975413260C69E2 = {
+			isa = PBXGroup;
+			children = (
+				4CCFE587D4DB012AC6B07F6A /* MyPortApp */,
+				8EEB3DC5A4C1985648EBEF24 /* MyPortAppTests */,
+				858323F2F510F70EE62FDFD4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4CCFE587D4DB012AC6B07F6A /* MyPortApp */ = {
+			isa = PBXGroup;
+			children = (
+				F43C27723E644E60319E0E7B /* App */,
+				1DD8DBB9934E2F256F07128A /* Core */,
+				AF807B2A29394EC07B75859D /* Features */,
+				9DCC0D7EC5C0BBB738AAA0AB /* Resources */,
+			);
+			path = MyPortApp;
+			sourceTree = "<group>";
+		};
+		858323F2F510F70EE62FDFD4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FA882D6A10EF4136E8B32B95 /* MyPortApp.app */,
+				131D490035F9B4A641DFD3ED /* MyPortAppTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8EEB3DC5A4C1985648EBEF24 /* MyPortAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				AB12DCCE1AF932A414665267 /* PortfolioAnalyticsServicesTests.swift */,
+				52466E558C16AD4EFBF156AB /* PortfolioSummaryServiceTests.swift */,
+			);
+			path = MyPortAppTests;
+			sourceTree = "<group>";
+		};
+		9DCC0D7EC5C0BBB738AAA0AB /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6F818077A67AEE0701C86EBE /* Assets.xcassets */,
+				C153F72CBDB7ADA3ED361AEA /* Preview Content */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		9FB03DF8D6B0966B9037863C /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				A74B5F2A0415144B91CA67FB /* AppFormatters.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		A8565B1052507010DCE0BD3E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				00D8DA1B29E46047EB67280D /* AnalysisJob.swift */,
+				276C4FDA0A9526A3813E6B4E /* AssetClass.swift */,
+				209402662BE0C67D5A3285DC /* AssetPosition.swift */,
+				5D635F448516B3333CFCED56 /* ExchangeRateRecord.swift */,
+				2F3F0894287C91D53A7E664F /* PortfolioAnalytics.swift */,
+				F948268BEE105C47B1AF277C /* PortfolioSnapshot.swift */,
+				FA16F486309403A06BCE5F3A /* ScreenshotUpload.swift */,
+				19531C0E5CDE42BBED892224 /* UploadSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AF807B2A29394EC07B75859D /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				D5FBD57053A3CA84BB4B0856 /* Dashboard */,
+				11B4C4BB1CBFDFAB84430C15 /* Import */,
+				18EC9274EA11F93143A3040B /* Settings */,
+				B0600299F33C6CAB5B113A71 /* Shared */,
+				21D454B6E6D49C88BE698E57 /* Snapshots */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		B0600299F33C6CAB5B113A71 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C5ADFE8E6872505FB5C7C32D /* AllocationChartView.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B51C6D375C8B7664F5812BC0 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				5FBEEA63D163C218677DC755 /* AnalysisRepository.swift */,
+				77EE937C2E5CF471E4D21D81 /* MockAnalysisRepository.swift */,
+				31E71D792F49DFBCD9571435 /* MockPortfolioRepository.swift */,
+				0C11C3EC5E475F5121A74F9B /* MockServerState.swift */,
+				3FAD6301D4A09FBB548D7412 /* PortfolioRepository.swift */,
+				691970E8E2A6F7DEE990C997 /* RepositoryFactory.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		C153F72CBDB7ADA3ED361AEA /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				3237E3A82A577216A776BCFE /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		D5FBD57053A3CA84BB4B0856 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				1291C2D400D23A695867A81A /* DashboardView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		D61D3365FE96AF6AAEF774F1 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				127CC4232B27FD502CCA0D1C /* AnalysisStore.swift */,
+				ADD42F7299BAD09362854382 /* PortfolioStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		E8C55FD1341F992510D1CFB6 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				C11451E03BAE4E7F64CED2D0 /* RemoteAnalysisRepository.swift */,
+				2BAA6CFF780069CD719EF8E9 /* RemotePortfolioRepository.swift */,
+				156B10B8595CF181DF93C6AC /* ServerConfigurationStore.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		F43C27723E644E60319E0E7B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C49368BF7464705DF3ED74B1 /* MyPortApp.swift */,
+				ECDDACA8D3D841D82E127B08 /* RootTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B4F8E2C069D142B23F4C8179 /* MyPortApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABC04F655447E237F65D9C30 /* Build configuration list for PBXNativeTarget "MyPortApp" */;
+			buildPhases = (
+				25C55BFA48487A59013F1D94 /* Sources */,
+				FE8B5A79EBF46C342F1C7483 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MyPortApp;
+			packageProductDependencies = (
+			);
+			productName = MyPortApp;
+			productReference = FA882D6A10EF4136E8B32B95 /* MyPortApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BDC4A3CB76686EF4ABC447E5 /* MyPortAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A935693EC823D2C3281E3F57 /* Build configuration list for PBXNativeTarget "MyPortAppTests" */;
+			buildPhases = (
+				C50BE052A5C4A4266B4508E2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2C88D6B27F3D9C07BA031E67 /* PBXTargetDependency */,
+			);
+			name = MyPortAppTests;
+			packageProductDependencies = (
+			);
+			productName = MyPortAppTests;
+			productReference = 131D490035F9B4A641DFD3ED /* MyPortAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C061F152988B36D11B0B1A20 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 0CEBF1666F97A75603FB0B01 /* Build configuration list for PBXProject "MyPort" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 49E84E4649975413260C69E2;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 858323F2F510F70EE62FDFD4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B4F8E2C069D142B23F4C8179 /* MyPortApp */,
+				BDC4A3CB76686EF4ABC447E5 /* MyPortAppTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FE8B5A79EBF46C342F1C7483 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1AE60315911B82C58946ACF3 /* Assets.xcassets in Resources */,
+				7F2FA3984E150FD8293F239A /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		25C55BFA48487A59013F1D94 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A5EAAE1AEB06624E73B2AC4 /* AllocationChartView.swift in Sources */,
+				CE0B366DBD534AB821E96856 /* AnalysisJob.swift in Sources */,
+				0F0FEF90DA9A3C341393EFD6 /* AnalysisRepository.swift in Sources */,
+				FF8C2F529A7ECBEB46C620A3 /* AnalysisStore.swift in Sources */,
+				9C5DFC272A2C9A49FD7F28E4 /* AppFormatters.swift in Sources */,
+				4B53E25A86D838C43EC0B2C2 /* AssetClass.swift in Sources */,
+				D0BF7D056E0DB007DBD84754 /* AssetPosition.swift in Sources */,
+				A769B29E1D1D7576AC779082 /* DashboardView.swift in Sources */,
+				2BAC712B058A80563B9B4ADE /* ExchangeRateRecord.swift in Sources */,
+				B2326BDB08B213A03AF53035 /* HoldingRowView.swift in Sources */,
+				CBBA4EF7D3B251E3B6F7E84B /* ImportView.swift in Sources */,
+				34B867A648DCF401783A88BE /* KeychainValueStore.swift in Sources */,
+				16489BA2D33967F3E31F0401 /* MockAnalysisRepository.swift in Sources */,
+				55F3BE8EA637D620CCFD9714 /* MockPortfolioRepository.swift in Sources */,
+				1F5399AC1EED3210FA771FB1 /* MockServerState.swift in Sources */,
+				6AD6E86A5CB0C883C209AB6A /* MyPortApp.swift in Sources */,
+				450884AF1B1CF6A830B966D2 /* PortfolioAllocationService.swift in Sources */,
+				1F21BAE9F5961A38F22117D6 /* PortfolioAnalytics.swift in Sources */,
+				FFED4F3884F4719CA0AAD44B /* PortfolioComparisonService.swift in Sources */,
+				6A835E186E54CF63C898BBDE /* PortfolioRepository.swift in Sources */,
+				A2B5D9BB93CBC0254726CC5C /* PortfolioSnapshot.swift in Sources */,
+				17A4451086A2E597CB99E339 /* PortfolioStore.swift in Sources */,
+				EA9D16B2E1A1A7E72AAC4CA5 /* PortfolioSummaryService.swift in Sources */,
+				953955B456BAF2F98535ABCB /* PortfolioTimelineService.swift in Sources */,
+				AB3C6F8C9C326B34E816758D /* RemoteAnalysisRepository.swift in Sources */,
+				FF4B0907DFC69BF9179FF53A /* RemotePortfolioRepository.swift in Sources */,
+				B7AAC07A4C07B8AB31B23D11 /* RepositoryFactory.swift in Sources */,
+				39D73A9522E82D8E283BCC6F /* RootTabView.swift in Sources */,
+				9B42A3E1BEF2B663D50F57CD /* ScreenshotUpload.swift in Sources */,
+				5562908989AD4986BAF55673 /* ServerConfigurationStore.swift in Sources */,
+				80445A3D73482B8DFDCAEE7B /* SettingsView.swift in Sources */,
+				9974821AA8FAF77A1FB47A94 /* SnapshotComparisonView.swift in Sources */,
+				A5E1F1C0A779DF596DC6BA01 /* SnapshotDetailView.swift in Sources */,
+				4F90AF010365C6760F080C8C /* SnapshotEditorView.swift in Sources */,
+				FCBCC503FEBA1675E80DF321 /* SnapshotListView.swift in Sources */,
+				F5EA2F581314E7628235B783 /* UploadSession.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C50BE052A5C4A4266B4508E2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D86F637682ECFF98690D848 /* PortfolioAnalyticsServicesTests.swift in Sources */,
+				70BF31ED01DD4A66F50CDB94 /* PortfolioSummaryServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2C88D6B27F3D9C07BA031E67 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B4F8E2C069D142B23F4C8179 /* MyPortApp */;
+			targetProxy = B4B61D483A754977E2FDFFEA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		14CC95FAC4BB85CDBEAB4789 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.changminbyun.MyPortTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyPort.app/MyPort";
+			};
+			name = Debug;
+		};
+		43E9BA4A12B8BFD2FAF154AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_LANGUAGE = ko;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7F817181B369B450A652BC39 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.changminbyun.MyPortTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyPort.app/MyPort";
+			};
+			name = Release;
+		};
+		985726C67D6234516BA57088 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_LANGUAGE = ko;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CB483FBCBEBA20F7E6CDC557 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyPort;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.changminbyun.MyPort;
+				PRODUCT_MODULE_NAME = MyPortApp;
+				PRODUCT_NAME = MyPort;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FC9B0982ED44ABBAA98FC84E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyPort;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.changminbyun.MyPort;
+				PRODUCT_MODULE_NAME = MyPortApp;
+				PRODUCT_NAME = MyPort;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0CEBF1666F97A75603FB0B01 /* Build configuration list for PBXProject "MyPort" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				43E9BA4A12B8BFD2FAF154AD /* Debug */,
+				985726C67D6234516BA57088 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A935693EC823D2C3281E3F57 /* Build configuration list for PBXNativeTarget "MyPortAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				14CC95FAC4BB85CDBEAB4789 /* Debug */,
+				7F817181B369B450A652BC39 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ABC04F655447E237F65D9C30 /* Build configuration list for PBXNativeTarget "MyPortApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB483FBCBEBA20F7E6CDC557 /* Debug */,
+				FC9B0982ED44ABBAA98FC84E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C061F152988B36D11B0B1A20 /* Project object */;
+}
