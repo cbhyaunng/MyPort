@@ -89,7 +89,7 @@ const server = createServer(async (request, response) => {
 
     const snapshotMatch = url.pathname.match(/^\/v1\/snapshots\/([^/]+)$/);
     if (snapshotMatch && method === "GET") {
-      const [, snapshotId] = snapshotMatch;
+      const snapshotId = normalizeIdentifier(snapshotMatch[1]);
       const snapshot = await storage.getSnapshot(snapshotId);
 
       if (snapshot == null) {
@@ -103,7 +103,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (snapshotMatch && method === "PUT") {
-      const [, snapshotId] = snapshotMatch;
+      const snapshotId = normalizeIdentifier(snapshotMatch[1]);
       const existing = await storage.getSnapshot(snapshotId);
 
       if (existing == null) {
@@ -127,7 +127,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (snapshotMatch && method === "DELETE") {
-      const [, snapshotId] = snapshotMatch;
+      const snapshotId = normalizeIdentifier(snapshotMatch[1]);
       await storage.deleteSnapshot(snapshotId);
       return sendNoContent(response, 204);
     }
@@ -177,7 +177,8 @@ const server = createServer(async (request, response) => {
 
     const uploadTargetMatch = url.pathname.match(/^\/upload-targets\/([^/]+)\/([^/]+)$/);
     if (uploadTargetMatch && method === "PUT") {
-      const [, uploadSessionId, uploadId] = uploadTargetMatch;
+      const uploadSessionId = normalizeIdentifier(uploadTargetMatch[1]);
+      const uploadId = normalizeIdentifier(uploadTargetMatch[2]);
       const session = await storage.getUploadSession(uploadSessionId);
 
       if (session == null) {
@@ -209,7 +210,7 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/v1/analysis-jobs" && method === "POST") {
       const body = await parseJSONBody(request);
-      const uploadSessionId = String(body.uploadSessionId ?? "");
+      const uploadSessionId = normalizeIdentifier(body.uploadSessionId);
       const session = await storage.getUploadSession(uploadSessionId);
 
       if (session == null) {
@@ -241,7 +242,7 @@ const server = createServer(async (request, response) => {
 
     const analysisJobMatch = url.pathname.match(/^\/v1\/analysis-jobs\/([^/]+)$/);
     if (analysisJobMatch && method === "GET") {
-      const [, jobId] = analysisJobMatch;
+      const jobId = normalizeIdentifier(analysisJobMatch[1]);
       const job = await storage.getAnalysisJob(jobId);
 
       if (job == null) {
@@ -330,7 +331,7 @@ function sendNoContent(response, statusCode) {
 function normalizeSnapshot(snapshot) {
   const now = new Date().toISOString();
   return {
-    id: String(snapshot.id ?? randomUUID()),
+    id: normalizeIdentifier(snapshot.id ?? randomUUID()),
     title: String(snapshot.title ?? "새 스냅샷"),
     capturedAt: coerceISOString(snapshot.capturedAt) ?? now,
     note: String(snapshot.note ?? ""),
@@ -348,7 +349,7 @@ function normalizeSnapshot(snapshot) {
 
 function normalizeHolding(holding) {
   return {
-    id: String(holding.id ?? randomUUID()),
+    id: normalizeIdentifier(holding.id ?? randomUUID()),
     name: String(holding.name ?? "이름 없음"),
     symbol: String(holding.symbol ?? ""),
     institution: String(holding.institution ?? ""),
@@ -364,7 +365,7 @@ function normalizeHolding(holding) {
 
 function normalizeExchangeRate(rate) {
   return {
-    id: String(rate.id ?? randomUUID()),
+    id: normalizeIdentifier(rate.id ?? randomUUID()),
     baseCurrency: String(rate.baseCurrency ?? "KRW").toUpperCase(),
     quoteCurrency: String(rate.quoteCurrency ?? "KRW").toUpperCase(),
     rateToQuote: Number(rate.rateToQuote ?? 1),
@@ -595,6 +596,10 @@ function makeSeedSnapshots() {
 function normalizeUploadMimeType(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
   return normalized.startsWith("image/") ? normalized : null;
+}
+
+function normalizeIdentifier(value) {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 function registerShutdownHandlers() {

@@ -64,7 +64,8 @@ async function createFileStorage({
       return sortSnapshots(snapshots);
     },
     async getSnapshot(snapshotId) {
-      return snapshots.find((item) => item.id === snapshotId) ?? null;
+      const normalizedSnapshotId = normalizeIdentifier(snapshotId);
+      return snapshots.find((item) => normalizeIdentifier(item.id) === normalizedSnapshotId) ?? null;
     },
     async saveSnapshot(snapshot) {
       snapshots = upsertById(snapshots, snapshot);
@@ -72,11 +73,16 @@ async function createFileStorage({
       return snapshot;
     },
     async deleteSnapshot(snapshotId) {
-      snapshots = snapshots.filter((item) => item.id !== snapshotId);
+      const normalizedSnapshotId = normalizeIdentifier(snapshotId);
+      snapshots = snapshots.filter((item) => normalizeIdentifier(item.id) !== normalizedSnapshotId);
       await writeJSONFile(snapshotsFile, snapshots);
     },
     async getUploadSession(uploadSessionId) {
-      return uploadSessions.find((item) => item.uploadSessionId === uploadSessionId || item.id === uploadSessionId) ?? null;
+      const normalizedUploadSessionId = normalizeIdentifier(uploadSessionId);
+      return uploadSessions.find((item) => {
+        return normalizeIdentifier(item.uploadSessionId) === normalizedUploadSessionId
+          || normalizeIdentifier(item.id) === normalizedUploadSessionId;
+      }) ?? null;
     },
     async saveUploadSession(session) {
       uploadSessions = upsertById(uploadSessions, session);
@@ -84,7 +90,11 @@ async function createFileStorage({
       return session;
     },
     async getAnalysisJob(jobId) {
-      return analysisJobs.find((item) => item.jobId === jobId || item.id === jobId) ?? null;
+      const normalizedJobId = normalizeIdentifier(jobId);
+      return analysisJobs.find((item) => {
+        return normalizeIdentifier(item.jobId) === normalizedJobId
+          || normalizeIdentifier(item.id) === normalizedJobId;
+      }) ?? null;
     },
     async saveAnalysisJob(job) {
       analysisJobs = upsertById(analysisJobs, job);
@@ -132,9 +142,10 @@ async function createPostgresStorage({
       return result.rows.map((row) => parsePayload(row.payload));
     },
     async getSnapshot(snapshotId) {
+      const normalizedSnapshotId = normalizeIdentifier(snapshotId);
       const result = await pool.query(
         "SELECT payload FROM snapshots WHERE id = $1 LIMIT 1",
-        [snapshotId]
+        [normalizedSnapshotId]
       );
       return result.rows.length > 0 ? parsePayload(result.rows[0].payload) : null;
     },
@@ -143,12 +154,13 @@ async function createPostgresStorage({
       return snapshot;
     },
     async deleteSnapshot(snapshotId) {
-      await pool.query("DELETE FROM snapshots WHERE id = $1", [snapshotId]);
+      await pool.query("DELETE FROM snapshots WHERE id = $1", [normalizeIdentifier(snapshotId)]);
     },
     async getUploadSession(uploadSessionId) {
+      const normalizedUploadSessionId = normalizeIdentifier(uploadSessionId);
       const result = await pool.query(
         "SELECT payload FROM upload_sessions WHERE id = $1 LIMIT 1",
-        [uploadSessionId]
+        [normalizedUploadSessionId]
       );
       return result.rows.length > 0 ? parsePayload(result.rows[0].payload) : null;
     },
@@ -163,9 +175,10 @@ async function createPostgresStorage({
       return session;
     },
     async getAnalysisJob(jobId) {
+      const normalizedJobId = normalizeIdentifier(jobId);
       const result = await pool.query(
         "SELECT payload FROM analysis_jobs WHERE id = $1 LIMIT 1",
-        [jobId]
+        [normalizedJobId]
       );
       return result.rows.length > 0 ? parsePayload(result.rows[0].payload) : null;
     },
@@ -247,7 +260,7 @@ async function upsertGenericRecord(pool, {
   payload
 }) {
   const safeTimestamp = coerceTimestamp(timestampValue);
-  const safeId = String(id);
+  const safeId = normalizeIdentifier(id);
 
   const query = `
     INSERT INTO ${tableName} (id, ${timestampColumn}, payload, updated_at)
@@ -288,8 +301,8 @@ function sortSnapshots(snapshots) {
 }
 
 function upsertById(items, nextItem) {
-  const nextId = String(nextItem.id);
-  const remaining = items.filter((item) => String(item.id) !== nextId);
+  const nextId = normalizeIdentifier(nextItem.id);
+  const remaining = items.filter((item) => normalizeIdentifier(item.id) !== nextId);
   return [...remaining, nextItem];
 }
 
@@ -313,4 +326,8 @@ function coerceTimestamp(value) {
 
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? fallback : parsed.toISOString();
+}
+
+function normalizeIdentifier(value) {
+  return String(value ?? "").trim().toLowerCase();
 }
