@@ -1,29 +1,45 @@
 import { createServer } from "node:http";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
-import { analyzeUploadSession } from "./analysis.mjs";
+import { analyzeUploadSession, getAnalysisRuntimeInfo } from "./analysis.mjs";
+import { createStorage } from "./storage.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const host = process.env.MYPORT_HOST ?? "127.0.0.1";
-const port = Number.parseInt(process.env.MYPORT_PORT ?? "8787", 10);
-const dataDirectory = process.env.MYPORT_DATA_DIR ?? path.join(__dirname, "data");
+const isRailwayEnvironment = Boolean(process.env.RAILWAY_ENVIRONMENT_NAME);
+const host = process.env.MYPORT_HOST ?? "0.0.0.0";
+const port = Number.parseInt(process.env.MYPORT_PORT ?? process.env.PORT ?? "8787", 10);
+const railwayVolumeMountPath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? "";
+const defaultDataDirectory = railwayVolumeMountPath.length > 0
+  ? path.join(railwayVolumeMountPath, "myport")
+  : path.join(__dirname, "data");
+const dataDirectory = process.env.MYPORT_DATA_DIR ?? defaultDataDirectory;
 const uploadsDirectory = path.join(dataDirectory, "uploads");
 const snapshotsFile = path.join(dataDirectory, "snapshots.json");
 const uploadSessionsFile = path.join(dataDirectory, "upload-sessions.json");
 const analysisJobsFile = path.join(dataDirectory, "analysis-jobs.json");
+const databaseURL = process.env.MYPORT_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
 const expectedBearerToken = process.env.MYPORT_BEARER_TOKEN ?? "";
-const publicBaseURL =
-  process.env.MYPORT_PUBLIC_BASE_URL ?? `http://${host}:${port}`;
+const railwayPublicDomain = process.env.RAILWAY_PUBLIC_DOMAIN ?? "";
+const publicBaseURL = process.env.MYPORT_PUBLIC_BASE_URL
+  ?? (railwayPublicDomain.length > 0 ? `https://${railwayPublicDomain}` : `http://127.0.0.1:${port}`);
+const shouldSeedSampleData = String(
+  process.env.MYPORT_SEED_SAMPLE_DATA ?? (isRailwayEnvironment ? "false" : "true")
+).toLowerCase() === "true";
 
-let snapshots = [];
-let uploadSessions = [];
-let analysisJobs = [];
-
-await initializeStorage();
+const storage = await createStorage({
+  dataDirectory,
+  uploadsDirectory,
+  snapshotsFile,
+  uploadSessionsFile,
+  analysisJobsFile,
+  databaseURL,
+  seedSnapshots: shouldSeedSampleData ? makeSeedSnapshots() : []
+});
+const analysisRuntimeInfo = getAnalysisRuntimeInfo();
 
 const server = createServer(async (request, response) => {
   try {
@@ -37,10 +53,15 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/healthz" && method === "GET") {
       return sendJSON(response, 200, {
         status: "ok",
-        mode: "local-json",
+        mode: storage.mode,
         serverTime: new Date().toISOString(),
         baseURL: publicBaseURL,
-        dataDirectory
+        dataDirectory,
+        uploadsDirectory,
+        analysisProvider: analysisRuntimeInfo.provider,
+        analysisModel: analysisRuntimeInfo.model,
+        openAIConfigured: analysisRuntimeInfo.openAIConfigured,
+        databaseConfigured: databaseURL.length > 0
       });
     }
 
@@ -54,9 +75,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (url.pathname === "/v1/snapshots" && method === "GET") {
-      const items = [...snapshots].sort((left, right) => {
-        return new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime();
-      });
+      const items = await storage.listSnapshots();
       return sendJSON(response, 200, { items });
     }
 
@@ -64,15 +83,14 @@ const server = createServer(async (request, response) => {
       const snapshot = await parseJSONBody(request);
       const stored = normalizeSnapshot(snapshot);
       stored.lastSyncedAt = new Date().toISOString();
-      snapshots = upsertById(snapshots, stored);
-      await persistSnapshots();
+      await storage.saveSnapshot(stored);
       return sendJSON(response, 201, stored);
     }
 
     const snapshotMatch = url.pathname.match(/^\/v1\/snapshots\/([^/]+)$/);
     if (snapshotMatch && method === "GET") {
       const [, snapshotId] = snapshotMatch;
-      const snapshot = snapshots.find((item) => item.id === snapshotId);
+      const snapshot = await storage.getSnapshot(snapshotId);
 
       if (snapshot == null) {
         return sendJSON(response, 404, {
@@ -86,7 +104,7 @@ const server = createServer(async (request, response) => {
 
     if (snapshotMatch && method === "PUT") {
       const [, snapshotId] = snapshotMatch;
-      const existing = snapshots.find((item) => item.id === snapshotId);
+      const existing = await storage.getSnapshot(snapshotId);
 
       if (existing == null) {
         return sendJSON(response, 404, {
@@ -104,15 +122,13 @@ const server = createServer(async (request, response) => {
       });
       stored.lastSyncedAt = new Date().toISOString();
 
-      snapshots = upsertById(snapshots, stored);
-      await persistSnapshots();
+      await storage.saveSnapshot(stored);
       return sendJSON(response, 200, stored);
     }
 
     if (snapshotMatch && method === "DELETE") {
       const [, snapshotId] = snapshotMatch;
-      snapshots = snapshots.filter((snapshot) => snapshot.id !== snapshotId);
-      await persistSnapshots();
+      await storage.deleteSnapshot(snapshotId);
       return sendNoContent(response, 204);
     }
 
@@ -137,7 +153,7 @@ const server = createServer(async (request, response) => {
         };
       });
 
-      uploadSessions = upsertById(uploadSessions, {
+      const session = {
         id: uploadSessionId,
         uploadSessionId,
         capturedAt,
@@ -147,10 +163,11 @@ const server = createServer(async (request, response) => {
           uploadURL: file.uploadURL,
           filePath: path.join(uploadsDirectory, uploadSessionId, `${file.uploadId}.bin`),
           uploadedAt: null,
+          mimeType: null,
           size: 0
         }))
-      });
-      await persistUploadSessions();
+      };
+      await storage.saveUploadSession(session);
 
       return sendJSON(response, 201, {
         uploadSessionId,
@@ -161,7 +178,7 @@ const server = createServer(async (request, response) => {
     const uploadTargetMatch = url.pathname.match(/^\/upload-targets\/([^/]+)\/([^/]+)$/);
     if (uploadTargetMatch && method === "PUT") {
       const [, uploadSessionId, uploadId] = uploadTargetMatch;
-      const session = uploadSessions.find((item) => item.uploadSessionId === uploadSessionId);
+      const session = await storage.getUploadSession(uploadSessionId);
 
       if (session == null) {
         return sendJSON(response, 404, {
@@ -184,7 +201,8 @@ const server = createServer(async (request, response) => {
 
       file.size = buffer.length;
       file.uploadedAt = new Date().toISOString();
-      await persistUploadSessions();
+      file.mimeType = normalizeUploadMimeType(request.headers["content-type"]);
+      await storage.saveUploadSession(session);
 
       return sendNoContent(response, 200);
     }
@@ -192,7 +210,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/v1/analysis-jobs" && method === "POST") {
       const body = await parseJSONBody(request);
       const uploadSessionId = String(body.uploadSessionId ?? "");
-      const session = uploadSessions.find((item) => item.uploadSessionId === uploadSessionId);
+      const session = await storage.getUploadSession(uploadSessionId);
 
       if (session == null) {
         return sendJSON(response, 404, {
@@ -212,8 +230,7 @@ const server = createServer(async (request, response) => {
       };
 
       job.id = job.jobId;
-      analysisJobs = upsertById(analysisJobs, job);
-      await persistAnalysisJobs();
+      await storage.saveAnalysisJob(job);
 
       return sendJSON(response, 201, {
         jobId: job.jobId,
@@ -225,7 +242,7 @@ const server = createServer(async (request, response) => {
     const analysisJobMatch = url.pathname.match(/^\/v1\/analysis-jobs\/([^/]+)$/);
     if (analysisJobMatch && method === "GET") {
       const [, jobId] = analysisJobMatch;
-      const job = analysisJobs.find((item) => item.jobId === jobId);
+      const job = await storage.getAnalysisJob(jobId);
 
       if (job == null) {
         return sendJSON(response, 404, {
@@ -257,21 +274,12 @@ const server = createServer(async (request, response) => {
 
 server.listen(port, host, () => {
   console.log(`MyPort server listening on ${publicBaseURL}`);
+  console.log(`Storage mode: ${storage.mode}`);
   console.log(`Data directory: ${dataDirectory}`);
+  console.log(`Analysis provider: ${analysisRuntimeInfo.provider}${analysisRuntimeInfo.model ? ` (${analysisRuntimeInfo.model})` : ""}`);
 });
 
-async function initializeStorage() {
-  await mkdir(dataDirectory, { recursive: true });
-  await mkdir(uploadsDirectory, { recursive: true });
-
-  snapshots = await readArrayFile(snapshotsFile, makeSeedSnapshots());
-  uploadSessions = await readArrayFile(uploadSessionsFile, []);
-  analysisJobs = await readArrayFile(analysisJobsFile, []);
-
-  await persistSnapshots();
-  await persistUploadSessions();
-  await persistAnalysisJobs();
-}
+registerShutdownHandlers();
 
 function isAuthorized(request) {
   if (expectedBearerToken.length === 0) {
@@ -280,33 +288,6 @@ function isAuthorized(request) {
 
   const header = request.headers.authorization ?? "";
   return header === `Bearer ${expectedBearerToken}`;
-}
-
-async function readArrayFile(filePath, fallbackValue) {
-  try {
-    const contents = await readFile(filePath, "utf8");
-    const parsed = JSON.parse(contents);
-    return Array.isArray(parsed) ? parsed : fallbackValue;
-  } catch {
-    return fallbackValue;
-  }
-}
-
-async function persistSnapshots() {
-  await writeJSONFile(snapshotsFile, snapshots);
-}
-
-async function persistUploadSessions() {
-  await writeJSONFile(uploadSessionsFile, uploadSessions);
-}
-
-async function persistAnalysisJobs() {
-  await writeJSONFile(analysisJobsFile, analysisJobs);
-}
-
-async function writeJSONFile(filePath, value) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 async function parseJSONBody(request) {
@@ -415,17 +396,17 @@ async function advanceAnalysisJob(job) {
     return;
   }
 
-  const session = uploadSessions.find((item) => item.uploadSessionId === job.uploadSessionId);
+  const session = await storage.getUploadSession(job.uploadSessionId);
   if (session == null) {
     job.status = "failed";
-    await persistAnalysisJobs();
+    await storage.saveAnalysisJob(job);
     return;
   }
 
   const uploadedCount = session.files.filter((file) => file.uploadedAt != null).length;
   if (uploadedCount < session.files.length) {
     job.status = "processing";
-    await persistAnalysisJobs();
+    await storage.saveAnalysisJob(job);
     return;
   }
 
@@ -434,7 +415,7 @@ async function advanceAnalysisJob(job) {
 
   if (elapsedMilliseconds < 800) {
     job.status = "processing";
-    await persistAnalysisJobs();
+    await storage.saveAnalysisJob(job);
     return;
   }
 
@@ -442,20 +423,19 @@ async function advanceAnalysisJob(job) {
     try {
       const { snapshot } = await analyzeUploadSession(session);
       const normalizedSnapshot = normalizeSnapshot(snapshot);
-      snapshots = upsertById(snapshots, normalizedSnapshot);
+      await storage.saveSnapshot(normalizedSnapshot);
       job.snapshotId = normalizedSnapshot.id;
-      await persistSnapshots();
     } catch (error) {
       job.status = "failed";
       job.completedAt = new Date().toISOString();
-      await persistAnalysisJobs();
+      await storage.saveAnalysisJob(job);
       throw error;
     }
   }
 
   job.status = "completed";
   job.completedAt = new Date().toISOString();
-  await persistAnalysisJobs();
+  await storage.saveAnalysisJob(job);
 }
 
 function makeSampleHoldings() {
@@ -612,7 +592,34 @@ function makeSeedSnapshots() {
   ];
 }
 
-function upsertById(items, nextItem) {
-  const remaining = items.filter((item) => item.id !== nextItem.id);
-  return [...remaining, nextItem];
+function normalizeUploadMimeType(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized.startsWith("image/") ? normalized : null;
+}
+
+function registerShutdownHandlers() {
+  let shuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) {
+      return;
+    }
+
+    shuttingDown = true;
+    console.log(`Received ${signal}, shutting down MyPort server...`);
+
+    server.close(() => {
+      void storage.close().finally(() => {
+        process.exit(0);
+      });
+    });
+  };
+
+  process.on("SIGINT", () => {
+    void shutdown("SIGINT");
+  });
+
+  process.on("SIGTERM", () => {
+    void shutdown("SIGTERM");
+  });
 }

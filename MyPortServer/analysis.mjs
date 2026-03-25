@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -54,10 +55,122 @@ const fallbackKRWRates = {
   USDT: 1471.8
 };
 
+const openAIAPIKey = process.env.OPENAI_API_KEY ?? "";
+const openAIBaseURL = String(process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/+$/, "");
+const openAIModel = process.env.OPENAI_MODEL ?? "gpt-5.4-mini";
+const openAIReasoningEffort = process.env.OPENAI_REASONING_EFFORT ?? "low";
+const configuredAnalysisProvider = String(process.env.MYPORT_ANALYSIS_PROVIDER ?? "").trim().toLowerCase();
+const analysisProvider = resolveAnalysisProvider(configuredAnalysisProvider);
+
+const portfolioAnalysisSchema = {
+  type: "object",
+  properties: {
+    institutions: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 10
+    },
+    previewLines: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 20
+    },
+    recognizedLineCount: {
+      type: "integer"
+    },
+    explicitRates: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          baseCurrency: { type: "string" },
+          rateToKRW: { type: "number" },
+          sourceText: { type: "string" }
+        },
+        required: ["baseCurrency", "rateToKRW", "sourceText"],
+        additionalProperties: false
+      }
+    },
+    holdings: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          symbol: { type: "string" },
+          institution: { type: "string" },
+          assetClass: {
+            type: "string",
+            enum: [
+              "domesticStock",
+              "foreignStock",
+              "cashEquivalent",
+              "crypto",
+              "bond",
+              "unknown"
+            ]
+          },
+          quantity: {
+            type: ["number", "null"]
+          },
+          unitPrice: {
+            type: ["number", "null"]
+          },
+          marketValue: { type: "number" },
+          currency: { type: "string" },
+          country: { type: "string" },
+          memo: { type: "string" }
+        },
+        required: [
+          "name",
+          "symbol",
+          "institution",
+          "assetClass",
+          "quantity",
+          "unitPrice",
+          "marketValue",
+          "currency",
+          "country",
+          "memo"
+        ],
+        additionalProperties: false
+      }
+    }
+  },
+  required: [
+    "institutions",
+    "previewLines",
+    "recognizedLineCount",
+    "explicitRates",
+    "holdings"
+  ],
+  additionalProperties: false
+};
+
+const openAIInstructions = [
+  "You extract portfolio holdings from mobile finance screenshots.",
+  "Return only the data required by the JSON schema.",
+  "Classify each holding as one of: domesticStock, foreignStock, cashEquivalent, crypto, bond, unknown.",
+  "Prefer individual holdings over summary totals when both exist.",
+  "Keep currencies exactly as shown when possible, such as KRW, USD, or USDT.",
+  "Use cashEquivalent for 예수금, 현금, 계좌잔액, 보통예금, CMA, MMF, and stablecoin balances like USDT or USDC.",
+  "Use foreignStock for US or other overseas equities and ETFs, domesticStock for KR equities and ETFs, crypto for BTC/ETH and other coins, and bond for 국채/회사채/채권 products.",
+  "If a quantity is missing, set quantity to null.",
+  "If a unit price is missing, set unitPrice to null.",
+  "Set previewLines to short snippets that help a user review the extraction.",
+  "Only include explicitRates when the screenshot itself clearly shows an FX rate."
+].join(" ");
+
+export function getAnalysisRuntimeInfo() {
+  return {
+    provider: analysisProvider,
+    model: analysisProvider === "openai" ? openAIModel : null,
+    openAIConfigured: openAIAPIKey.length > 0
+  };
+}
+
 export async function analyzeUploadSession(uploadSession) {
-  const imagePaths = uploadSession.files.map((file) => file.filePath);
-  const ocrResults = await runOCR(imagePaths);
-  const analysis = analyzeOCRResults(ocrResults);
+  const analysis = await analyzeFiles(uploadSession.files ?? []);
   const exchangeRates = await buildExchangeRates({
     capturedAt: uploadSession.capturedAt,
     explicitRates: analysis.explicitRates,
@@ -66,11 +179,12 @@ export async function analyzeUploadSession(uploadSession) {
 
   const titlePrefix = analysis.institutions.length > 0
     ? analysis.institutions.join(", ")
-    : "OCR 분석";
+    : "자동 분석";
   const note = buildAnalysisNote({
     imageCount: uploadSession.files.length,
     analysis,
-    exchangeRates
+    exchangeRates,
+    provider: analysisProvider
   });
 
   return {
@@ -93,6 +207,20 @@ export async function analyzeUploadSession(uploadSession) {
   };
 }
 
+async function analyzeFiles(files) {
+  if (analysisProvider === "openai") {
+    return analyzeImagesWithOpenAI(files);
+  }
+
+  if (analysisProvider === "vision") {
+    const imagePaths = files.map((file) => file.filePath);
+    const ocrResults = await runOCR(imagePaths);
+    return analyzeOCRResults(ocrResults);
+  }
+
+  throw new Error(`지원하지 않는 분석 공급자입니다: ${analysisProvider}`);
+}
+
 async function runOCR(imagePaths) {
   if (imagePaths.length === 0) {
     return [];
@@ -108,6 +236,303 @@ async function runOCR(imagePaths) {
 
   const parsed = JSON.parse(stdout);
   return Array.isArray(parsed) ? parsed : [];
+}
+
+async function analyzeImagesWithOpenAI(files) {
+  if (files.length === 0) {
+    return {
+      holdings: [],
+      explicitRates: new Map([["KRW", 1]]),
+      institutions: [],
+      recognizedLineCount: 0,
+      previewLines: []
+    };
+  }
+
+  if (openAIAPIKey.length === 0) {
+    throw new Error("OPENAI_API_KEY가 설정되지 않아 OpenAI 이미지 분석을 실행할 수 없습니다.");
+  }
+
+  const content = [
+    {
+      type: "input_text",
+      text: "Analyze these portfolio screenshots and extract holdings into the provided schema."
+    }
+  ];
+
+  for (const file of files) {
+    content.push({
+      type: "input_image",
+      image_url: await buildImageDataURL(file)
+    });
+  }
+
+  const body = {
+    model: openAIModel,
+    instructions: openAIInstructions,
+    input: [
+      {
+        role: "user",
+        content
+      }
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "portfolio_screenshot_analysis",
+        schema: portfolioAnalysisSchema,
+        strict: true
+      }
+    }
+  };
+
+  if (supportsReasoning(openAIModel)) {
+    body.reasoning = {
+      effort: openAIReasoningEffort
+    };
+  }
+
+  const response = await fetch(`${openAIBaseURL}/responses`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAIAPIKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000)
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (response.ok === false) {
+    const message = payload?.error?.message ?? response.statusText;
+    throw new Error(`OpenAI 이미지 분석 요청이 실패했습니다. (${response.status}) ${message}`);
+  }
+
+  const outputText = extractResponseOutputText(payload);
+  if (outputText.length === 0) {
+    throw new Error("OpenAI 응답에서 구조화된 분석 결과를 찾지 못했습니다.");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(outputText);
+  } catch (error) {
+    throw new Error(
+      `OpenAI 응답 JSON을 해석하지 못했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`
+    );
+  }
+
+  return normalizeOpenAIAnalysis(parsed);
+}
+
+async function buildImageDataURL(file) {
+  const buffer = await readFile(file.filePath);
+  const mimeType = normalizeMimeType(file.mimeType, file.filePath);
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+function extractResponseOutputText(payload) {
+  if (typeof payload?.output_text === "string" && payload.output_text.trim().length > 0) {
+    return payload.output_text.trim();
+  }
+
+  const messages = Array.isArray(payload?.output) ? payload.output : [];
+  const parts = [];
+
+  for (const message of messages) {
+    if (message?.type !== "message" || Array.isArray(message.content) === false) {
+      continue;
+    }
+
+    for (const content of message.content) {
+      if (content?.type === "output_text" && typeof content.text === "string") {
+        parts.push(content.text);
+      }
+    }
+  }
+
+  return parts.join("\n").trim();
+}
+
+function normalizeOpenAIAnalysis(result) {
+  const explicitRates = new Map([["KRW", 1]]);
+  const institutions = new Set(
+    (Array.isArray(result?.institutions) ? result.institutions : [])
+      .map((value) => String(value ?? "").trim())
+      .filter((value) => value.length > 0)
+  );
+
+  for (const item of Array.isArray(result?.explicitRates) ? result.explicitRates : []) {
+    const currency = String(item?.baseCurrency ?? "").trim().toUpperCase();
+    const rate = toNullableFiniteNumber(item?.rateToKRW);
+    if (currency.length === 0 || rate == null || rate <= 0) {
+      continue;
+    }
+    explicitRates.set(currency, rate);
+  }
+
+  const holdings = dedupeHoldings(
+    (Array.isArray(result?.holdings) ? result.holdings : [])
+      .map((holding) => normalizeOpenAIHolding(holding))
+      .filter((holding) => holding != null)
+  );
+
+  return {
+    holdings,
+    explicitRates,
+    institutions: Array.from(institutions).sort(),
+    recognizedLineCount: normalizeCount(result?.recognizedLineCount, result?.previewLines),
+    previewLines: normalizePreviewLines(result?.previewLines)
+  };
+}
+
+function normalizeOpenAIHolding(holding) {
+  const name = cleanupAssetName(String(holding?.name ?? "").trim());
+  const symbol = String(holding?.symbol ?? "").trim().toUpperCase();
+  const institution = String(holding?.institution ?? "").trim();
+  const memo = String(holding?.memo ?? "").trim();
+  const currency = normalizeCurrency(holding?.currency);
+  const marketValue = toNullableFiniteNumber(holding?.marketValue);
+
+  if (name.length === 0 || marketValue == null || marketValue <= 0) {
+    return null;
+  }
+
+  const inferredAssetClass = inferAssetClass(
+    `${name} ${symbol} ${memo}`.trim(),
+    "unknown",
+    currency,
+    symbol
+  );
+  const assetClass = normalizeAssetClass(holding?.assetClass, inferredAssetClass);
+  const country = normalizeCountry(holding?.country, assetClass, currency);
+
+  return {
+    id: randomUUID(),
+    name,
+    symbol,
+    institution,
+    assetClass,
+    quantity: toNullableFiniteNumber(holding?.quantity),
+    unitPrice: toNullableFiniteNumber(holding?.unitPrice),
+    marketValue,
+    currency,
+    country,
+    memo: memo.length > 0 ? `OpenAI 분석: ${memo}` : "OpenAI 이미지 분석"
+  };
+}
+
+function normalizeAssetClass(value, fallbackValue = "unknown") {
+  const normalized = String(value ?? "").trim().toLowerCase();
+
+  if (normalized === "domesticstock" || normalized === "domestic_stock" || normalized === "국내주식") {
+    return "domesticStock";
+  }
+
+  if (normalized === "foreignstock" || normalized === "foreign_stock" || normalized === "해외주식") {
+    return "foreignStock";
+  }
+
+  if (normalized === "cashequivalent" || normalized === "cash_equivalent" || normalized === "현금성자산") {
+    return "cashEquivalent";
+  }
+
+  if (normalized === "crypto" || normalized === "코인") {
+    return "crypto";
+  }
+
+  if (normalized === "bond" || normalized === "채권") {
+    return "bond";
+  }
+
+  if (normalized === "unknown" || normalized.length === 0) {
+    return fallbackValue;
+  }
+
+  return fallbackValue;
+}
+
+function normalizeCountry(value, assetClass, currency) {
+  const trimmed = String(value ?? "").trim().toUpperCase();
+  if (trimmed.length > 0) {
+    return trimmed;
+  }
+
+  return inferCountry(assetClass, currency);
+}
+
+function normalizeCurrency(value) {
+  const trimmed = String(value ?? "").trim().toUpperCase();
+  if (trimmed.length > 0) {
+    return trimmed;
+  }
+
+  return "KRW";
+}
+
+function normalizePreviewLines(previewLines) {
+  return (Array.isArray(previewLines) ? previewLines : [])
+    .map((line) => normalizeLine(line))
+    .filter((line) => line.length > 0)
+    .slice(0, 8);
+}
+
+function normalizeCount(recognizedLineCount, previewLines) {
+  const numeric = Number(recognizedLineCount);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+
+  return normalizePreviewLines(previewLines).length;
+}
+
+function toNullableFiniteNumber(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeMimeType(value, filePath) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized.startsWith("image/")) {
+    return normalized;
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === ".png") {
+    return "image/png";
+  }
+  if (extension === ".webp") {
+    return "image/webp";
+  }
+  if (extension === ".gif") {
+    return "image/gif";
+  }
+  return "image/jpeg";
+}
+
+function supportsReasoning(model) {
+  return /^(gpt-5|o[1-9]|o[1-9]-)/i.test(model);
+}
+
+function resolveAnalysisProvider(requestedProvider) {
+  if (requestedProvider === "openai" || requestedProvider === "vision") {
+    return requestedProvider;
+  }
+
+  if (openAIAPIKey.length > 0) {
+    return "openai";
+  }
+
+  if (process.platform === "darwin") {
+    return "vision";
+  }
+
+  return "openai";
 }
 
 function analyzeOCRResults(ocrResults) {
@@ -673,10 +1098,11 @@ async function fetchLiveKRWRates(currencies) {
   return liveRates;
 }
 
-function buildAnalysisNote({ imageCount, analysis, exchangeRates }) {
+function buildAnalysisNote({ imageCount, analysis, exchangeRates, provider }) {
   const noteLines = [
-    `${imageCount}장 스크린샷 OCR 분석 결과`,
-    `인식 텍스트 줄 수: ${analysis.recognizedLineCount}`,
+    `${imageCount}장 스크린샷 분석 결과`,
+    `분석 엔진: ${provider === "openai" ? `OpenAI ${openAIModel}` : "Apple Vision OCR"}`,
+    `인식/요약 줄 수: ${analysis.recognizedLineCount}`,
     `파싱된 자산 수: ${analysis.holdings.length}`
   ];
 

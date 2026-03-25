@@ -4,4 +4,7 @@ build/
 *.xcuserstate
 xcuserdata/
 MyPort.xcodeproj/project.xcworkspace/xcuserdata/
+MyPortServer/node_modules/
 MyPortServer/data/
+MyPortServer/.env
+MyPortServer/.railway/

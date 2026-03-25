@@ -1,6 +1,13 @@
 # MyPort 서버 API 초안
 
-현재 `/Users/changminbyun/codex/MyPort/MyPortServer` 에 로컬 JSON 저장 서버 샘플 구현이 포함되어 있습니다.
+현재 `/Users/changminbyun/codex/MyPort/MyPortServer` 에 Railway 배포 기준 서버 구현이 포함되어 있습니다.
+
+- 권장 저장 구조
+  - 메타데이터: Postgres
+  - 업로드 이미지: Railway Volume
+- 분석 구조
+  - 클라우드: OpenAI 이미지 분석
+  - 로컬 macOS: Vision OCR fallback
 
 ## 공통
 
@@ -20,10 +27,15 @@
 ```json
 {
   "status": "ok",
-  "mode": "local-json",
+  "mode": "postgres",
   "serverTime": "2026-03-25T10:00:00Z",
-  "baseURL": "http://127.0.0.1:8787",
-  "dataDirectory": "/path/to/data"
+  "baseURL": "https://myport-api.up.railway.app",
+  "dataDirectory": "/data/myport",
+  "uploadsDirectory": "/data/myport/uploads",
+  "analysisProvider": "openai",
+  "analysisModel": "gpt-5.4-mini",
+  "openAIConfigured": true,
+  "databaseConfigured": true
 }
 ```
 
