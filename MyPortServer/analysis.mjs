@@ -155,8 +155,12 @@ const openAIInstructions = [
   "Keep currencies exactly as shown when possible, such as KRW, USD, or USDT.",
   "Use cashEquivalent for 예수금, 현금, 계좌잔액, 보통예금, CMA, MMF, and stablecoin balances like USDT or USDC.",
   "Use foreignStock for US or other overseas equities and ETFs, domesticStock for KR equities and ETFs, crypto for BTC/ETH and other coins, and bond for 국채/회사채/채권 products.",
+  "If a screenshot shows a derived portfolio app result rather than an original brokerage or exchange screen, ignore it unless no original source screenshots are available. Derived app screens often include navigation tabs such as 대시보드, 업로드, 히스토리, 설정, Dashboard, Upload, History, or Settings.",
+  "If the screenshot contains 키움, 키움전체, 영웅문, 해외잔고, or [위탁종합], treat the institution as 키움증권. Do not label those screens as KB증권 unless KB branding is explicitly visible.",
+  "For 키움증권 해외잔고 tables, 매입금액 and 평가금액 are total position amounts for the holding, not per-share prices. Never multiply those displayed amounts by quantity. If only total amounts are visible, set unitPrice to null.",
   "If a quantity is missing, set quantity to null.",
-  "If a unit price is missing, set unitPrice to null.",
+  "If a unit price is missing or the visible number is a total position amount rather than a per-share price, set unitPrice to null.",
+  "For each holding memo, include a short raw source snippet with the visible row labels and numbers when possible, for example: row: QLD / 수량 70 / 매입금액 3779.5386 / 평가금액 4466.0560.",
   "Set previewLines to short snippets that help a user review the extraction.",
   "Only include explicitRates when the screenshot itself clearly shows an FX rate."
 ].join(" ");
@@ -356,12 +360,23 @@ function extractResponseOutputText(payload) {
 }
 
 function normalizeOpenAIAnalysis(result) {
+  const previewLines = normalizePreviewLines(result?.previewLines);
   const explicitRates = new Map([["KRW", 1]]);
   const institutions = new Set(
     (Array.isArray(result?.institutions) ? result.institutions : [])
-      .map((value) => String(value ?? "").trim())
+      .map((value) => normalizeInstitutionName(value))
       .filter((value) => value.length > 0)
   );
+  const analysisContext = buildOpenAIAnalysisContext({
+    institutions: Array.from(institutions),
+    previewLines
+  });
+
+  reconcileInstitutionHints(institutions, analysisContext);
+
+  if (analysisContext.primaryInstitution.length > 0) {
+    institutions.add(analysisContext.primaryInstitution);
+  }
 
   for (const item of Array.isArray(result?.explicitRates) ? result.explicitRates : []) {
     const currency = String(item?.baseCurrency ?? "").trim().toUpperCase();
@@ -374,7 +389,7 @@ function normalizeOpenAIAnalysis(result) {
 
   const holdings = dedupeHoldings(
     (Array.isArray(result?.holdings) ? result.holdings : [])
-      .map((holding) => normalizeOpenAIHolding(holding))
+      .map((holding) => normalizeOpenAIHolding(holding, analysisContext))
       .filter((holding) => holding != null)
   );
 
@@ -383,19 +398,20 @@ function normalizeOpenAIAnalysis(result) {
     explicitRates,
     institutions: Array.from(institutions).sort(),
     recognizedLineCount: normalizeCount(result?.recognizedLineCount, result?.previewLines),
-    previewLines: normalizePreviewLines(result?.previewLines)
+    previewLines
   };
 }
 
-function normalizeOpenAIHolding(holding) {
+function normalizeOpenAIHolding(holding, analysisContext) {
   const name = cleanupAssetName(String(holding?.name ?? "").trim());
   const symbol = String(holding?.symbol ?? "").trim().toUpperCase();
-  const institution = String(holding?.institution ?? "").trim();
   const memo = String(holding?.memo ?? "").trim();
   const currency = normalizeCurrency(holding?.currency);
-  const marketValue = toNullableFiniteNumber(holding?.marketValue);
+  const quantity = toNullableFiniteNumber(holding?.quantity);
+  const rawUnitPrice = toNullableFiniteNumber(holding?.unitPrice);
+  const rawMarketValue = toNullableFiniteNumber(holding?.marketValue);
 
-  if (name.length === 0 || marketValue == null || marketValue <= 0) {
+  if (name.length === 0 || rawMarketValue == null || rawMarketValue <= 0) {
     return null;
   }
 
@@ -407,6 +423,32 @@ function normalizeOpenAIHolding(holding) {
   );
   const assetClass = normalizeAssetClass(holding?.assetClass, inferredAssetClass);
   const country = normalizeCountry(holding?.country, assetClass, currency);
+  const institution = normalizeOpenAIInstitution(holding?.institution, {
+    analysisContext,
+    assetClass,
+    currency,
+    symbol,
+    memo
+  });
+  const unitPrice = normalizeOpenAIUnitPrice({
+    memo,
+    rawUnitPrice,
+    analysisContext,
+    assetClass
+  });
+  const marketValue = normalizeOpenAIMarketValue({
+    memo,
+    rawMarketValue,
+    quantity,
+    rawUnitPrice,
+    unitPrice,
+    analysisContext,
+    assetClass
+  });
+
+  if (marketValue == null || marketValue <= 0) {
+    return null;
+  }
 
   return {
     id: randomUUID(),
@@ -414,13 +456,168 @@ function normalizeOpenAIHolding(holding) {
     symbol,
     institution,
     assetClass,
-    quantity: toNullableFiniteNumber(holding?.quantity),
-    unitPrice: toNullableFiniteNumber(holding?.unitPrice),
+    quantity,
+    unitPrice,
     marketValue,
     currency,
     country,
     memo: memo.length > 0 ? `OpenAI 분석: ${memo}` : "OpenAI 이미지 분석"
   };
+}
+
+function buildOpenAIAnalysisContext({ institutions, previewLines }) {
+  const previewText = previewLines.join("\n");
+  const previewInstitution = inferInstitution(previewText);
+  const normalizedInstitutions = Array.from(new Set(
+    [...institutions, previewInstitution]
+      .map((value) => normalizeInstitutionName(value))
+      .filter((value) => value.length > 0)
+  ));
+  const securitiesInstitutions = normalizedInstitutions.filter(isSecuritiesInstitution);
+  const primaryInstitution = previewInstitution.length > 0
+    ? previewInstitution
+    : (securitiesInstitutions.length === 1 ? securitiesInstitutions[0] : "");
+
+  return {
+    previewText,
+    institutions: normalizedInstitutions,
+    primaryInstitution,
+    isKiwoomOverseasScreen: /해외잔고|위탁종합|키움전체|영웅문/i.test(previewText),
+    hasDerivedAppSignals: /(대시보드|업로드|히스토리|설정|dashboard|upload|history|settings)/i.test(previewText)
+  };
+}
+
+function reconcileInstitutionHints(institutions, analysisContext) {
+  if (analysisContext.isKiwoomOverseasScreen && analysisContext.primaryInstitution === "키움증권") {
+    institutions.delete("KB증권");
+  }
+}
+
+function normalizeInstitutionName(value) {
+  const trimmed = String(value ?? "").trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+
+  if (/업비트|upbit/i.test(trimmed)) {
+    return "Upbit";
+  }
+  if (/^okx$/i.test(trimmed) || /okx/i.test(trimmed)) {
+    return "OKX";
+  }
+  if (/키움|영웅문/i.test(trimmed)) {
+    return "키움증권";
+  }
+  if (/kb/i.test(trimmed) || /kb증권/i.test(trimmed)) {
+    return "KB증권";
+  }
+  if (/메리츠/i.test(trimmed)) {
+    return "메리츠증권";
+  }
+  if (/신한/i.test(trimmed)) {
+    return "신한은행";
+  }
+  if (/토스/i.test(trimmed)) {
+    return "토스";
+  }
+
+  return trimmed;
+}
+
+function isSecuritiesInstitution(value) {
+  return /증권/.test(value);
+}
+
+function normalizeOpenAIInstitution(rawInstitution, { analysisContext, assetClass, currency, symbol, memo }) {
+  const normalized = normalizeInstitutionName(rawInstitution);
+  const combinedText = `${normalized} ${symbol} ${memo}`.trim();
+
+  if (analysisContext.isKiwoomOverseasScreen && assetClass === "foreignStock") {
+    if (normalized.length === 0 || normalized === "KB증권" || /키움전체|위탁종합|해외잔고/i.test(combinedText)) {
+      return "키움증권";
+    }
+  }
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  if (analysisContext.primaryInstitution.length > 0 && (assetClass === "foreignStock" || assetClass === "domesticStock")) {
+    return analysisContext.primaryInstitution;
+  }
+
+  if ((assetClass === "crypto" || currency === "USDT") && /OKX/i.test(analysisContext.previewText)) {
+    return "OKX";
+  }
+
+  if ((assetClass === "crypto" || symbol === "BTC" || symbol === "ETH") && /업비트|Upbit/i.test(analysisContext.previewText)) {
+    return "Upbit";
+  }
+
+  return normalized;
+}
+
+function normalizeOpenAIUnitPrice({ memo, rawUnitPrice, analysisContext, assetClass }) {
+  if (analysisContext.isKiwoomOverseasScreen && assetClass === "foreignStock") {
+    const explicitAveragePrice = extractLabeledNumber(memo, ["평균단가", "현재가", "단가"]);
+    if (explicitAveragePrice != null && explicitAveragePrice > 0) {
+      return explicitAveragePrice;
+    }
+
+    return null;
+  }
+
+  return rawUnitPrice;
+}
+
+function normalizeOpenAIMarketValue({ memo, rawMarketValue, quantity, rawUnitPrice, unitPrice, analysisContext, assetClass }) {
+  if (analysisContext.isKiwoomOverseasScreen && assetClass === "foreignStock") {
+    const explicitEvaluationAmount = extractLabeledNumber(memo, ["평가금액", "평가 금액", "evaluation", "market value"]);
+    if (explicitEvaluationAmount != null && explicitEvaluationAmount > 0) {
+      return explicitEvaluationAmount;
+    }
+
+    const numericTokens = extractNumericTokens(memo).map((token) => token.value).filter((value) => value > 0);
+    if (numericTokens.length >= 3) {
+      return numericTokens[numericTokens.length - 1];
+    }
+
+    const comparableUnitPrice = rawUnitPrice ?? unitPrice;
+    if (quantity != null && comparableUnitPrice != null && rawMarketValue != null && isApproximatelyEqual(rawMarketValue, quantity * comparableUnitPrice)) {
+      return rawMarketValue / quantity;
+    }
+  }
+
+  return rawMarketValue;
+}
+
+function extractLabeledNumber(text, labels) {
+  const source = String(text ?? "");
+  for (const label of labels) {
+    const pattern = new RegExp(`${escapeRegExp(label)}\\s*[:=]?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)`, "i");
+    const match = source.match(pattern);
+    if (match) {
+      const value = parseNumber(match[1]);
+      if (Number.isFinite(value) && value > 0) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isApproximatelyEqual(left, right) {
+  if (Number.isFinite(left) === false || Number.isFinite(right) === false) {
+    return false;
+  }
+
+  const tolerance = Math.max(0.01, Math.abs(right) * 0.001);
+  return Math.abs(left - right) <= tolerance;
 }
 
 function normalizeAssetClass(value, fallbackValue = "unknown") {
