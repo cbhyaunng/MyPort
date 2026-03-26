@@ -46,7 +46,7 @@ const imageTypeSignals = {
   crypto: ["업비트", "OKX", "코인", "거래소", "현물", "선물", "BTC", "ETH", "USDT"],
   foreignStock: ["해외주식", "미국주식", "NASDAQ", "NYSE", "AAPL", "SCHD", "QQQ", "VOO"],
   domesticStock: ["국내주식", "삼성전자", "코스피", "코스닥", "영웅문", "주식잔고"],
-  cashEquivalent: ["예수금", "잔고", "출금가능", "계좌잔액", "보통예금", "현금"],
+  cashEquivalent: ["예수금", "잔고", "출금가능", "계좌잔액", "보통예금", "현금", "외화예수금", "외화추정예수금", "D2예수금", "외화자산"],
   bond: ["채권", "국채", "회사채", "TREASURY", "BOND"]
 };
 
@@ -153,8 +153,11 @@ const openAIInstructions = [
   "Classify each holding as one of: domesticStock, foreignStock, cashEquivalent, crypto, bond, unknown.",
   "Prefer individual holdings over summary totals when both exist.",
   "Keep currencies exactly as shown when possible, such as KRW, USD, or USDT.",
-  "Use cashEquivalent for 예수금, 현금, 계좌잔액, 보통예금, CMA, MMF, and stablecoin balances like USDT or USDC.",
+  "Use cashEquivalent for 예수금, 외화예수금, 외화추정예수금, D2예수금, 외화잔고, 현금, 계좌잔액, 보통예금, CMA, MMF, and stablecoin balances like USDT or USDC.",
   "Use foreignStock for US or other overseas equities and ETFs, domesticStock for KR equities and ETFs, crypto for BTC/ETH and other coins, and bond for 국채/회사채/채권 products.",
+  "If the screenshot contains Super365, treat the institution as 메리츠증권.",
+  "Preserve foreign-currency cash balances as separate cashEquivalent holdings, including currencies like USD, CHF, EUR, JPY, HKD, CNY, and GBP.",
+  "When a cash balance uses Swiss francs or mentions 스위스프랑, use currency CHF.",
   "If a screenshot shows a derived portfolio app result rather than an original brokerage or exchange screen, ignore it unless no original source screenshots are available. Derived app screens often include navigation tabs such as 대시보드, 업로드, 히스토리, 설정, Dashboard, Upload, History, or Settings.",
   "If the screenshot contains 키움, 키움전체, 영웅문, 해외잔고, or [위탁종합], treat the institution as 키움증권. Do not label those screens as KB증권 unless KB branding is explicitly visible.",
   "For 키움증권 해외잔고 tables, 매입금액 and 평가금액 are total position amounts for the holding, not per-share prices. Never multiply those displayed amounts by quantity. If only total amounts are visible, set unitPrice to null.",
@@ -403,25 +406,37 @@ function normalizeOpenAIAnalysis(result) {
 }
 
 function normalizeOpenAIHolding(holding, analysisContext) {
-  const name = cleanupAssetName(String(holding?.name ?? "").trim());
+  const rawName = cleanupAssetName(String(holding?.name ?? "").trim());
   const symbol = String(holding?.symbol ?? "").trim().toUpperCase();
   const memo = String(holding?.memo ?? "").trim();
-  const currency = normalizeCurrency(holding?.currency);
+  const currency = normalizeHoldingCurrency({
+    rawCurrency: holding?.currency,
+    rawName,
+    memo,
+    symbol
+  });
   const quantity = toNullableFiniteNumber(holding?.quantity);
   const rawUnitPrice = toNullableFiniteNumber(holding?.unitPrice);
   const rawMarketValue = toNullableFiniteNumber(holding?.marketValue);
 
-  if (name.length === 0 || rawMarketValue == null || rawMarketValue <= 0) {
+  if (rawName.length === 0 || rawMarketValue == null || rawMarketValue <= 0) {
     return null;
   }
 
   const inferredAssetClass = inferAssetClass(
-    `${name} ${symbol} ${memo}`.trim(),
+    `${rawName} ${symbol} ${memo}`.trim(),
     "unknown",
     currency,
     symbol
   );
   const assetClass = normalizeAssetClass(holding?.assetClass, inferredAssetClass);
+  const name = normalizeHoldingName({
+    rawName,
+    assetClass,
+    currency,
+    memo,
+    symbol
+  });
   const country = normalizeCountry(holding?.country, assetClass, currency);
   const institution = normalizeOpenAIInstitution(holding?.institution, {
     analysisContext,
@@ -483,12 +498,17 @@ function buildOpenAIAnalysisContext({ institutions, previewLines }) {
     institutions: normalizedInstitutions,
     primaryInstitution,
     isKiwoomOverseasScreen: /해외잔고|위탁종합|키움전체|영웅문/i.test(previewText),
+    isMeritzSuper365Screen: /Super365/i.test(previewText),
     hasDerivedAppSignals: /(대시보드|업로드|히스토리|설정|dashboard|upload|history|settings)/i.test(previewText)
   };
 }
 
 function reconcileInstitutionHints(institutions, analysisContext) {
   if (analysisContext.isKiwoomOverseasScreen && analysisContext.primaryInstitution === "키움증권") {
+    institutions.delete("KB증권");
+  }
+
+  if (analysisContext.isMeritzSuper365Screen && analysisContext.primaryInstitution === "메리츠증권") {
     institutions.delete("KB증권");
   }
 }
@@ -512,6 +532,9 @@ function normalizeInstitutionName(value) {
     return "KB증권";
   }
   if (/메리츠/i.test(trimmed)) {
+    return "메리츠증권";
+  }
+  if (/super365/i.test(trimmed)) {
     return "메리츠증권";
   }
   if (/신한/i.test(trimmed)) {
@@ -539,11 +562,18 @@ function normalizeOpenAIInstitution(rawInstitution, { analysisContext, assetClas
   }
 
   if (normalized.length > 0) {
+    if (analysisContext.isMeritzSuper365Screen && /KB증권|키움증권|미래에셋증권/.test(normalized)) {
+      return "메리츠증권";
+    }
     return normalized;
   }
 
-  if (analysisContext.primaryInstitution.length > 0 && (assetClass === "foreignStock" || assetClass === "domesticStock")) {
+  if (analysisContext.primaryInstitution.length > 0 && (assetClass === "foreignStock" || assetClass === "domesticStock" || assetClass === "cashEquivalent")) {
     return analysisContext.primaryInstitution;
+  }
+
+  if (analysisContext.isMeritzSuper365Screen && (assetClass === "foreignStock" || assetClass === "domesticStock" || assetClass === "cashEquivalent")) {
+    return "메리츠증권";
   }
 
   if ((assetClass === "crypto" || currency === "USDT") && /OKX/i.test(analysisContext.previewText)) {
@@ -660,12 +690,111 @@ function normalizeCountry(value, assetClass, currency) {
 }
 
 function normalizeCurrency(value) {
-  const trimmed = String(value ?? "").trim().toUpperCase();
-  if (trimmed.length > 0) {
-    return trimmed;
+  const normalized = detectCurrencyFromText(value);
+  if (normalized.length > 0) {
+    return normalized;
   }
 
   return "KRW";
+}
+
+function normalizeHoldingCurrency({ rawCurrency, rawName, memo, symbol }) {
+  const direct = normalizeCurrency(rawCurrency);
+  if (direct !== "KRW" || /\bKRW\b|원화/i.test(String(rawCurrency ?? ""))) {
+    return direct;
+  }
+
+  const inferred = detectCurrencyFromText(`${rawName} ${memo} ${symbol}`.trim());
+  if (inferred.length > 0) {
+    return inferred;
+  }
+
+  return direct;
+}
+
+function detectCurrencyFromText(value) {
+  const text = String(value ?? "").trim();
+  if (text.length === 0) {
+    return "";
+  }
+
+  if (/스위스\s*프랑|Swiss\s*Franc|\bCHF\b/i.test(text)) {
+    return "CHF";
+  }
+  if (/미국\s*달러|US\s*Dollar|\bUSD\b|\$/i.test(text)) {
+    return "USD";
+  }
+  if (/원화|\bKRW\b|₩/i.test(text)) {
+    return "KRW";
+  }
+  if (/유로|\bEUR\b/i.test(text)) {
+    return "EUR";
+  }
+  if (/엔화|일본엔|\bJPY\b/i.test(text)) {
+    return "JPY";
+  }
+  if (/홍콩달러|\bHKD\b/i.test(text)) {
+    return "HKD";
+  }
+  if (/위안|인민폐|\bCNY\b/i.test(text)) {
+    return "CNY";
+  }
+  if (/파운드|\bGBP\b/i.test(text)) {
+    return "GBP";
+  }
+  if (/\bUSDT\b/i.test(text)) {
+    return "USDT";
+  }
+  if (/\bUSDC\b/i.test(text)) {
+    return "USDC";
+  }
+
+  return "";
+}
+
+function normalizeHoldingName({ rawName, assetClass, currency, memo, symbol }) {
+  if (assetClass !== "cashEquivalent") {
+    return rawName;
+  }
+
+  const source = `${rawName} ${memo}`.trim();
+  if (/D2예수금/i.test(source)) {
+    return "D2예수금";
+  }
+  if (/원화\s*예수금|원화예수금/i.test(source) || currency === "KRW") {
+    return "원화예수금";
+  }
+  if (stablecoinSymbols.has(symbol)) {
+    return symbol;
+  }
+  if (/외화추정예수금|외화예수금|외화잔고|예수금/i.test(source) || currency !== "KRW") {
+    return `${currencyDisplayName(currency)} 예수금`;
+  }
+
+  return rawName;
+}
+
+function currencyDisplayName(currency) {
+  switch (currency) {
+    case "USD":
+      return "미국달러";
+    case "CHF":
+      return "스위스프랑";
+    case "EUR":
+      return "유로";
+    case "JPY":
+      return "엔화";
+    case "HKD":
+      return "홍콩달러";
+    case "CNY":
+      return "위안화";
+    case "GBP":
+      return "영국파운드";
+    case "KRW":
+      return "원화";
+    default:
+      return currency;
+  }
 }
 
 function normalizePreviewLines(previewLines) {
@@ -822,6 +951,9 @@ function inferInstitution(text) {
   if (/메리츠/i.test(text)) {
     return "메리츠증권";
   }
+  if (/Super365/i.test(text)) {
+    return "메리츠증권";
+  }
   if (/신한/i.test(text)) {
     return "신한은행";
   }
@@ -869,6 +1001,9 @@ function inferDefaultAssetClass(text, upperText) {
 function inferDefaultCurrency(text, upperText) {
   if (upperText.includes("USDT")) {
     return "USDT";
+  }
+  if (upperText.includes("CHF") || /스위스\s*프랑/i.test(text)) {
+    return "CHF";
   }
   if (upperText.includes("USD") || text.includes("$")) {
     return "USD";
@@ -918,7 +1053,7 @@ function parseHoldingsFromLines(lines, context) {
       index += 1
     }
 
-    const isCashLikeLine = /예수금|잔고|현금|출금가능|CASH|CMA|MMF/i.test(line);
+    const isCashLikeLine = /예수금|잔고|현금|출금가능|CASH|CMA|MMF|외화자산/i.test(line);
     if (isCashLikeLine && hasMeaningfulNumber(line)) {
       const cashHolding = parseHoldingLine(line, {
         ...context,
@@ -1155,6 +1290,29 @@ function inferCountry(assetClass, currency) {
   }
   if (assetClass === "foreignStock") {
     return "US";
+  }
+  if (assetClass === "cashEquivalent") {
+    if (currency === "USD") {
+      return "US";
+    }
+    if (currency === "CHF") {
+      return "CH";
+    }
+    if (currency === "JPY") {
+      return "JP";
+    }
+    if (currency === "EUR") {
+      return "EU";
+    }
+    if (currency === "HKD") {
+      return "HK";
+    }
+    if (currency === "CNY") {
+      return "CN";
+    }
+    if (currency === "GBP") {
+      return "GB";
+    }
   }
   if (assetClass === "crypto" || currency === "USDT") {
     return "SC";
