@@ -156,8 +156,10 @@ const openAIInstructions = [
   "Use cashEquivalent for 예수금, 외화예수금, 외화추정예수금, D2예수금, 외화잔고, 현금, 계좌잔액, 보통예금, CMA, MMF, and stablecoin balances like USDT or USDC.",
   "Use foreignStock for US or other overseas equities and ETFs, domesticStock for KR equities and ETFs, crypto for BTC/ETH and other coins, and bond for 국채/회사채/채권 products.",
   "If the screenshot contains Super365, treat the institution as 메리츠증권.",
+  "If the screenshot shows the top tabs 투자, 연금/ISA, CMA, 예적금 together with bottom tabs like 국내현재가, 국내주문, 국내잔고, treat the institution as 우리투자증권.",
   "Preserve foreign-currency cash balances as separate cashEquivalent holdings, including currencies like USD, CHF, EUR, JPY, HKD, CNY, and GBP.",
   "When a cash balance uses Swiss francs or mentions 스위스프랑, use currency CHF.",
+  "Do not create cashEquivalent holdings from stock summary labels such as 내 주식, 주식평가금액(A), 평가금액(A), 순평가(A-B), or from stock settlement labels like 현금 • 1주 or 현금 | AGIX. Those belong to stock holdings screens, not cash balances.",
   "If a screenshot shows a derived portfolio app result rather than an original brokerage or exchange screen, ignore it unless no original source screenshots are available. Derived app screens often include navigation tabs such as 대시보드, 업로드, 히스토리, 설정, Dashboard, Upload, History, or Settings.",
   "If the screenshot contains 키움, 키움전체, 영웅문, 해외잔고, or [위탁종합], treat the institution as 키움증권. Do not label those screens as KB증권 unless KB branding is explicitly visible.",
   "For 키움증권 해외잔고 tables, 매입금액 and 평가금액 are total position amounts for the holding, not per-share prices. Never multiply those displayed amounts by quantity. If only total amounts are visible, set unitPrice to null.",
@@ -437,6 +439,18 @@ function normalizeOpenAIHolding(holding, analysisContext) {
     memo,
     symbol
   });
+
+  if (shouldDiscardOpenAIHolding({
+    rawName,
+    normalizedName: name,
+    symbol,
+    memo,
+    assetClass,
+    analysisContext
+  })) {
+    return null;
+  }
+
   const country = normalizeCountry(holding?.country, assetClass, currency);
   const institution = normalizeOpenAIInstitution(holding?.institution, {
     analysisContext,
@@ -480,6 +494,34 @@ function normalizeOpenAIHolding(holding, analysisContext) {
   };
 }
 
+function shouldDiscardOpenAIHolding({ rawName, normalizedName, symbol, memo, assetClass, analysisContext }) {
+  const combinedText = `${rawName} ${normalizedName} ${symbol} ${memo}`.trim();
+
+  if (assetClass === "cashEquivalent") {
+    if (looksLikeStockSummaryText(combinedText)) {
+      return true;
+    }
+
+    if (looksLikeStockSettlementLabel(combinedText)) {
+      return true;
+    }
+
+    if (analysisContext.isWooriInvestmentScreen && /내\s*주식|종목명|평가금|현재가/i.test(combinedText)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function looksLikeStockSummaryText(text) {
+  return /내\s*주식|주식평가금액|평가금액\(A\)|순평가\(A-B\)|실현손익|평가손익|종목명\s*순/i.test(text);
+}
+
+function looksLikeStockSettlementLabel(text) {
+  return /현금\s*[•|]\s*(?:[0-9]+주|[A-Z]{2,10})/i.test(text);
+}
+
 function buildOpenAIAnalysisContext({ institutions, previewLines }) {
   const previewText = previewLines.join("\n");
   const previewInstitution = inferInstitution(previewText);
@@ -499,6 +541,7 @@ function buildOpenAIAnalysisContext({ institutions, previewLines }) {
     primaryInstitution,
     isKiwoomOverseasScreen: /해외잔고|위탁종합|키움전체|영웅문/i.test(previewText),
     isMeritzSuper365Screen: /Super365/i.test(previewText),
+    isWooriInvestmentScreen: looksLikeWooriInvestmentScreen(previewText),
     hasDerivedAppSignals: /(대시보드|업로드|히스토리|설정|dashboard|upload|history|settings)/i.test(previewText)
   };
 }
@@ -509,6 +552,10 @@ function reconcileInstitutionHints(institutions, analysisContext) {
   }
 
   if (analysisContext.isMeritzSuper365Screen && analysisContext.primaryInstitution === "메리츠증권") {
+    institutions.delete("KB증권");
+  }
+
+  if (analysisContext.isWooriInvestmentScreen && analysisContext.primaryInstitution === "우리투자증권") {
     institutions.delete("KB증권");
   }
 }
@@ -536,6 +583,9 @@ function normalizeInstitutionName(value) {
   }
   if (/super365/i.test(trimmed)) {
     return "메리츠증권";
+  }
+  if (/우리투자|woori/i.test(trimmed)) {
+    return "우리투자증권";
   }
   if (/신한/i.test(trimmed)) {
     return "신한은행";
@@ -565,6 +615,9 @@ function normalizeOpenAIInstitution(rawInstitution, { analysisContext, assetClas
     if (analysisContext.isMeritzSuper365Screen && /KB증권|키움증권|미래에셋증권/.test(normalized)) {
       return "메리츠증권";
     }
+    if (analysisContext.isWooriInvestmentScreen && /KB증권|키움증권|미래에셋증권|메리츠증권/.test(normalized)) {
+      return "우리투자증권";
+    }
     return normalized;
   }
 
@@ -574,6 +627,10 @@ function normalizeOpenAIInstitution(rawInstitution, { analysisContext, assetClas
 
   if (analysisContext.isMeritzSuper365Screen && (assetClass === "foreignStock" || assetClass === "domesticStock" || assetClass === "cashEquivalent")) {
     return "메리츠증권";
+  }
+
+  if (analysisContext.isWooriInvestmentScreen && (assetClass === "foreignStock" || assetClass === "domesticStock" || assetClass === "cashEquivalent")) {
+    return "우리투자증권";
   }
 
   if ((assetClass === "crypto" || currency === "USDT") && /OKX/i.test(analysisContext.previewText)) {
@@ -648,6 +705,12 @@ function isApproximatelyEqual(left, right) {
 
   const tolerance = Math.max(0.01, Math.abs(right) * 0.001);
   return Math.abs(left - right) <= tolerance;
+}
+
+function looksLikeWooriInvestmentScreen(text) {
+  const normalized = String(text ?? "");
+  return /투자\s+연금\/ISA\s+CMA\s+예적금/i.test(normalized)
+    || (/연금\/ISA/i.test(normalized) && /CMA/i.test(normalized) && /예적금/i.test(normalized) && /국내현재가|국내주문|국내잔고/i.test(normalized));
 }
 
 function normalizeAssetClass(value, fallbackValue = "unknown") {
@@ -947,6 +1010,9 @@ function inferInstitution(text) {
   }
   if (/키움|영웅문/i.test(text)) {
     return "키움증권";
+  }
+  if (looksLikeWooriInvestmentScreen(text)) {
+    return "우리투자증권";
   }
   if (/메리츠/i.test(text)) {
     return "메리츠증권";
