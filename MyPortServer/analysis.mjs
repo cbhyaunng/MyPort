@@ -159,6 +159,8 @@ const openAIInstructions = [
   "If the screenshot shows the top tabs 투자, 연금/ISA, CMA, 예적금 together with bottom tabs like 국내현재가, 국내주문, 국내잔고, treat the institution as 우리투자증권.",
   "Preserve foreign-currency cash balances as separate cashEquivalent holdings, including currencies like USD, CHF, EUR, JPY, HKD, CNY, and GBP.",
   "When a cash balance uses Swiss francs or mentions 스위스프랑, use currency CHF.",
+  "For 메리츠증권 Super365 domestic stock balance screens, rows like 현대차, 삼성전자, LS ELECTRIC with 현금 and 1주 are stock holdings. 현금 there is a settlement label, not a cashEquivalent asset.",
+  "For 메리츠증권 Super365 예수금 screens, include positive KRW cash balances such as 추정예수금(D+1), 추정예수금(D+2), 출금가능금액, and 주문가능금액(현금). Redundant zero-only rows may be omitted.",
   "Do not create cashEquivalent holdings from stock summary labels such as 내 주식, 주식평가금액(A), 평가금액(A), 순평가(A-B), or from stock settlement labels like 현금 • 1주 or 현금 | AGIX. Those belong to stock holdings screens, not cash balances.",
   "If a screenshot shows a derived portfolio app result rather than an original brokerage or exchange screen, ignore it unless no original source screenshots are available. Derived app screens often include navigation tabs such as 대시보드, 업로드, 히스토리, 설정, Dashboard, Upload, History, or Settings.",
   "If the screenshot contains 키움, 키움전체, 영웅문, 해외잔고, or [위탁종합], treat the institution as 키움증권. Do not label those screens as KB증권 unless KB branding is explicitly visible.",
@@ -431,7 +433,16 @@ function normalizeOpenAIHolding(holding, analysisContext) {
     currency,
     symbol
   );
-  const assetClass = normalizeAssetClass(holding?.assetClass, inferredAssetClass);
+  const assetClass = normalizeHoldingAssetClass(
+    normalizeAssetClass(holding?.assetClass, inferredAssetClass),
+    {
+      rawName,
+      symbol,
+      memo,
+      currency,
+      analysisContext
+    }
+  );
   const name = normalizeHoldingName({
     rawName,
     assetClass,
@@ -494,6 +505,23 @@ function normalizeOpenAIHolding(holding, analysisContext) {
   };
 }
 
+function normalizeHoldingAssetClass(assetClass, { rawName, symbol, memo, currency, analysisContext }) {
+  if (assetClass !== "cashEquivalent") {
+    return assetClass;
+  }
+
+  const combinedText = `${rawName} ${symbol} ${memo}`.trim();
+  if (looksLikeSpecificStockHolding({ rawName, symbol, memo, analysisContext })) {
+    return currency === "KRW" ? "domesticStock" : "foreignStock";
+  }
+
+  if (analysisContext.isMeritzSuper365Screen && /추정예수금|출금가능금액|주문가능금액\(현금\)|D2예수금/i.test(combinedText)) {
+    return "cashEquivalent";
+  }
+
+  return assetClass;
+}
+
 function shouldDiscardOpenAIHolding({ rawName, normalizedName, symbol, memo, assetClass, analysisContext }) {
   const combinedText = `${rawName} ${normalizedName} ${symbol} ${memo}`.trim();
 
@@ -512,6 +540,41 @@ function shouldDiscardOpenAIHolding({ rawName, normalizedName, symbol, memo, ass
   }
 
   return false;
+}
+
+function looksLikeSpecificStockHolding({ rawName, symbol, memo, analysisContext }) {
+  const combinedText = `${rawName} ${symbol} ${memo}`.trim();
+
+  if (/예수금|증거금|주문가능|출금가능|원화예수금|외화예수금|D2예수금|추정예수금|환전/i.test(combinedText)) {
+    return false;
+  }
+
+  if (looksLikeStockSettlementLabel(combinedText) && looksLikeHoldingName(rawName, symbol)) {
+    return true;
+  }
+
+  if (analysisContext.isMeritzSuper365Screen && looksLikeHoldingName(rawName, symbol) && /보유수량|매입가|매입금액|수익률|평가손익|현재가|현금/i.test(combinedText)) {
+    return true;
+  }
+
+  return false;
+}
+
+function looksLikeHoldingName(rawName, symbol) {
+  const name = cleanupAssetName(String(rawName ?? "").trim());
+  if (name.length === 0) {
+    return false;
+  }
+
+  if (/현금|예수금|잔고|주문가능|증거금|내 주식|주식평가금액|평가금액|순평가/i.test(name)) {
+    return false;
+  }
+
+  if (symbol.length > 0) {
+    return true;
+  }
+
+  return /[A-Za-z가-힣]/.test(name);
 }
 
 function looksLikeStockSummaryText(text) {
